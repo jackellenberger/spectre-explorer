@@ -17,9 +17,11 @@ export class Shape implements Renderable {
   quad: Point[];
   label: string;
   path2D: Path2D;
+  polyPts: Point[]; // Alias for pts for consistency
 
   constructor(pts: Point[], quad: Point[], label: string) {
     this.pts = pts;
+    this.polyPts = pts;
     this.quad = quad;
     this.label = label;
     
@@ -62,12 +64,14 @@ export class Shape implements Renderable {
 export class CurvyShape implements Renderable {
   quad: Point[];
   label: string;
-  pts: Point[];
+  pts: Point[]; // The curved points
+  polyPts: Point[]; // The original polygon points
   path2D: Path2D;
 
   constructor(pts: Point[], quad: Point[], label: string) {
     this.quad = quad;
     this.label = label;
+    this.polyPts = pts;
     this.pts = [pts[pts.length - 1]];
     let toggle = true;
 

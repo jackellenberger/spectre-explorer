@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Controls } from './components/Controls';
-import { TileSystem, TileType, ColorTheme, Matrix, ColorScheme, Renderable, CustomThemeConfig, ThemeSlot } from './types';
+import { TileSystem, TileType, ColorTheme, Matrix, ColorScheme, Renderable, CustomThemeConfig, ThemeSlot, ColoringMode, ColoringConfig } from './types';
+import { computeColors, getOrientation, normalizeAngle } from './utils/coloring';
 import { 
   buildSpectreBase, 
   buildHatTurtleBase, 
@@ -64,6 +65,20 @@ export default function App() {
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [strokeColor, setStrokeColor] = useState('#000000');
   const [strokeWidth, setStrokeWidth] = useState(0.1);
+
+  // Coloring State
+  const [coloringMode, setColoringMode] = useState<ColoringMode>('default');
+  const [coloringSeed, setColoringSeed] = useState<number>(Date.now());
+  const [themeConfigs, setThemeConfigs] = useState<Record<string, ColoringConfig>>({});
+
+  const coloringConfig = useMemo(() => themeConfigs[colorTheme] || {}, [themeConfigs, colorTheme]);
+
+  const handleColoringConfigChange = useCallback((newConfig: ColoringConfig) => {
+      setThemeConfigs(prev => ({
+          ...prev,
+          [colorTheme]: newConfig
+      }));
+  }, [colorTheme]);
 
   // Animation State
   const [animateGrowth, setAnimateGrowth] = useState(false);
@@ -280,6 +295,33 @@ export default function App() {
     }
   }, [colorTheme]);
 
+  const dynamicColors = useMemo(() => {
+    if (coloringMode === 'default') return null;
+
+    // Determine palette
+    let palette: string[] = [];
+    if (colorTheme === 'Custom') {
+        palette = Object.values(customThemeConfig.slots).map(s => s.color1);
+    } else if (colorTheme === 'Magma') {
+        palette = Object.values(MAGMA_CONFIG.slots).map(s => s.color1);
+    } else {
+        // Use unique colors from the current theme
+        palette = Array.from(new Set(Object.values(colors)));
+    }
+
+    return computeColors(bakedTiles, coloringMode, palette, coloringSeed, coloringConfig);
+  }, [bakedTiles, coloringMode, coloringSeed, colorTheme, colors, customThemeConfig, coloringConfig]);
+
+  const uniqueAngles = useMemo(() => {
+      const angles = new Set<number>();
+      for(const t of bakedTiles) {
+          const ang = normalizeAngle(getOrientation(t.matrix));
+          const deg = Math.round(ang * 180 / Math.PI);
+          angles.add(deg);
+      }
+      return Array.from(angles).sort((a,b) => a-b);
+  }, [bakedTiles]);
+
   // --- Rendering Loop ---
 
   useEffect(() => {
@@ -397,7 +439,9 @@ export default function App() {
              ctx.strokeStyle = strokeColor;
              
              // Color Logic
-             if (activeCustomConfig && slot) {
+             if (dynamicColors && dynamicColors.has(inst.path)) {
+                 ctx.fillStyle = dynamicColors.get(inst.path)!;
+             } else if (activeCustomConfig && slot) {
                  if (slot.isGradient) {
                      const grad = ctx.createLinearGradient(0, 0, 1.5, 1.5);
                      grad.addColorStop(0, slot.color1);
@@ -435,7 +479,7 @@ export default function App() {
 
     render();
     return () => cancelAnimationFrame(animationFrameId);
-  }, [bakedTiles, colors, colorTheme, isEditMode, backgroundColor, strokeColor, strokeWidth, customThemeConfig, isAnimating, animationSpeed]);
+  }, [bakedTiles, colors, dynamicColors, colorTheme, isEditMode, backgroundColor, strokeColor, strokeWidth, customThemeConfig, isAnimating, animationSpeed]);
 
   // --- Interaction Handlers ---
 
@@ -698,6 +742,18 @@ export default function App() {
         onStrokeColorChange={setStrokeColor}
         strokeWidth={strokeWidth}
         onStrokeWidthChange={setStrokeWidth}
+        coloringRule={coloringMode}
+        onColoringModeChange={setColoringMode}
+        onRerollColoring={() => setColoringSeed(Date.now())}
+        coloringConfig={coloringConfig}
+        onColoringConfigChange={handleColoringConfigChange}
+        currentPalette={colorTheme === 'Custom'
+            ? Object.values(customThemeConfig.slots).map(s => s.color1)
+            : colorTheme === 'Magma'
+                ? Object.values(MAGMA_CONFIG.slots).map(s => s.color1)
+                : Array.from(new Set(Object.values(colors)))
+        }
+        uniqueAngles={uniqueAngles}
       />
     </div>
   );
