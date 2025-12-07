@@ -71,3 +71,8 @@ export type ColorTheme =
   | 'Custom';
 
 export type ColoringMode = 'default' | 'random' | 'four-color' | 'orientation' | 'orientation-gradient';
+
+export interface ColoringConfig {
+  orientationMap?: Record<number, string>; // angle (degrees) -> color
+  gradientStops?: { angle: number; color: string }[]; // angle (0-360) -> color
+}

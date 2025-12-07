@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Controls } from './components/Controls';
-import { TileSystem, TileType, ColorTheme, Matrix, ColorScheme, Renderable, CustomThemeConfig, ThemeSlot, ColoringMode } from './types';
-import { computeColors } from './utils/coloring';
+import { TileSystem, TileType, ColorTheme, Matrix, ColorScheme, Renderable, CustomThemeConfig, ThemeSlot, ColoringMode, ColoringConfig } from './types';
+import { computeColors, getOrientation, normalizeAngle } from './utils/coloring';
 import { 
   buildSpectreBase, 
   buildHatTurtleBase, 
@@ -69,6 +69,7 @@ export default function App() {
   // Coloring State
   const [coloringMode, setColoringMode] = useState<ColoringMode>('default');
   const [coloringSeed, setColoringSeed] = useState<number>(Date.now());
+  const [coloringConfig, setColoringConfig] = useState<ColoringConfig>({});
 
   // Animation State
   const [animateGrowth, setAnimateGrowth] = useState(false);
@@ -299,8 +300,18 @@ export default function App() {
         palette = Array.from(new Set(Object.values(colors)));
     }
 
-    return computeColors(bakedTiles, coloringMode, palette, coloringSeed);
-  }, [bakedTiles, coloringMode, coloringSeed, colorTheme, colors, customThemeConfig]);
+    return computeColors(bakedTiles, coloringMode, palette, coloringSeed, coloringConfig);
+  }, [bakedTiles, coloringMode, coloringSeed, colorTheme, colors, customThemeConfig, coloringConfig]);
+
+  const uniqueAngles = useMemo(() => {
+      const angles = new Set<number>();
+      for(const t of bakedTiles) {
+          const ang = normalizeAngle(getOrientation(t.matrix));
+          const deg = Math.round(ang * 180 / Math.PI);
+          angles.add(deg);
+      }
+      return Array.from(angles).sort((a,b) => a-b);
+  }, [bakedTiles]);
 
   // --- Rendering Loop ---
 
@@ -459,7 +470,7 @@ export default function App() {
 
     render();
     return () => cancelAnimationFrame(animationFrameId);
-  }, [bakedTiles, colors, colorTheme, isEditMode, backgroundColor, strokeColor, strokeWidth, customThemeConfig, isAnimating, animationSpeed]);
+  }, [bakedTiles, colors, dynamicColors, colorTheme, isEditMode, backgroundColor, strokeColor, strokeWidth, customThemeConfig, isAnimating, animationSpeed]);
 
   // --- Interaction Handlers ---
 
@@ -725,6 +736,15 @@ export default function App() {
         coloringRule={coloringMode}
         onColoringModeChange={setColoringMode}
         onRerollColoring={() => setColoringSeed(Date.now())}
+        coloringConfig={coloringConfig}
+        onColoringConfigChange={setColoringConfig}
+        currentPalette={colorTheme === 'Custom'
+            ? Object.values(customThemeConfig.slots).map(s => s.color1)
+            : colorTheme === 'Magma'
+                ? Object.values(MAGMA_CONFIG.slots).map(s => s.color1)
+                : Array.from(new Set(Object.values(colors)))
+        }
+        uniqueAngles={uniqueAngles}
       />
     </div>
   );

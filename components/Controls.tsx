@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { TileType, ColorTheme, ColorScheme, CustomThemeConfig, ThemeSlot, ColoringMode } from '../types';
+import { TileType, ColorTheme, ColorScheme, CustomThemeConfig, ThemeSlot, ColoringMode, ColoringConfig } from '../types';
 import { TILE_NAMES, COL_MAP_53, COL_MAP_ORIG, COL_MAP_MYSTICS, COL_MAP_PRIDE, COL_MAP_OCEAN, COL_MAP_FOREST, COL_MAP_SUNSET, COL_MAP_PASTEL, COL_MAP_MONOCHROME, COL_MAP_NEON, COL_MAP_AUTUMN, COL_MAP_BERRY, COL_MAP_VINTAGE, COL_MAP_CYBERPUNK, MAGMA_CONFIG } from '../constants';
+import { ColoringEditor } from './ColoringEditor';
 
 interface ControlsProps {
   tileType: TileType;
@@ -13,6 +14,10 @@ interface ControlsProps {
   coloringRule: ColoringMode;
   onColoringModeChange: (m: ColoringMode) => void;
   onRerollColoring: () => void;
+  coloringConfig: ColoringConfig;
+  onColoringConfigChange: (c: ColoringConfig) => void;
+  currentPalette: string[];
+  uniqueAngles: number[];
 
   // Custom Theme Props
   customThemeConfig: CustomThemeConfig;
@@ -115,9 +120,14 @@ export const Controls: React.FC<ControlsProps> = ({
   onStrokeWidthChange,
   coloringRule,
   onColoringModeChange,
-  onRerollColoring
+  onRerollColoring,
+  coloringConfig,
+  onColoringConfigChange,
+  currentPalette,
+  uniqueAngles
 }) => {
   const [isThemeOpen, setIsThemeOpen] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
 
   const getPreviewColors = (theme: typeof THEMES[0]) => {
      if (theme.label === 'Magma') return ['#3c0000', '#ff4d00', '#ffcc00', '#4a0e00', '#ffd700'];
@@ -412,8 +422,27 @@ export const Controls: React.FC<ControlsProps> = ({
                  🎲
                </button>
             )}
+            {(coloringRule === 'orientation' || coloringRule === 'orientation-gradient') && (
+               <button
+                 onClick={() => setIsEditorOpen(true)}
+                 className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-medium border border-gray-200"
+                 title="Edit Rule"
+               >
+                 ✏️
+               </button>
+            )}
           </div>
         </div>
+
+        <ColoringEditor
+            isOpen={isEditorOpen}
+            onClose={() => setIsEditorOpen(false)}
+            mode={coloringRule}
+            config={coloringConfig}
+            onChange={onColoringConfigChange}
+            palette={currentPalette}
+            uniqueAngles={uniqueAngles}
+        />
 
         {/* Custom Theme Editor */}
         {colorTheme === 'Custom' && (
