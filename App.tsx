@@ -69,7 +69,16 @@ export default function App() {
   // Coloring State
   const [coloringMode, setColoringMode] = useState<ColoringMode>('default');
   const [coloringSeed, setColoringSeed] = useState<number>(Date.now());
-  const [coloringConfig, setColoringConfig] = useState<ColoringConfig>({});
+  const [themeConfigs, setThemeConfigs] = useState<Record<string, ColoringConfig>>({});
+
+  const coloringConfig = useMemo(() => themeConfigs[colorTheme] || {}, [themeConfigs, colorTheme]);
+
+  const handleColoringConfigChange = useCallback((newConfig: ColoringConfig) => {
+      setThemeConfigs(prev => ({
+          ...prev,
+          [colorTheme]: newConfig
+      }));
+  }, [colorTheme]);
 
   // Animation State
   const [animateGrowth, setAnimateGrowth] = useState(false);
@@ -737,7 +746,7 @@ export default function App() {
         onColoringModeChange={setColoringMode}
         onRerollColoring={() => setColoringSeed(Date.now())}
         coloringConfig={coloringConfig}
-        onColoringConfigChange={setColoringConfig}
+        onColoringConfigChange={handleColoringConfigChange}
         currentPalette={colorTheme === 'Custom'
             ? Object.values(customThemeConfig.slots).map(s => s.color1)
             : colorTheme === 'Magma'
