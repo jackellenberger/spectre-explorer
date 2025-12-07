@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TileType, ColorTheme, ColorScheme, CustomThemeConfig, ThemeSlot } from '../types';
+import { TileType, ColorTheme, ColorScheme, CustomThemeConfig, ThemeSlot, ColoringMode } from '../types';
 import { TILE_NAMES, COL_MAP_53, COL_MAP_ORIG, COL_MAP_MYSTICS, COL_MAP_PRIDE, COL_MAP_OCEAN, COL_MAP_FOREST, COL_MAP_SUNSET, COL_MAP_PASTEL, COL_MAP_MONOCHROME, COL_MAP_NEON, COL_MAP_AUTUMN, COL_MAP_BERRY, COL_MAP_VINTAGE, COL_MAP_CYBERPUNK, MAGMA_CONFIG } from '../constants';
 
 interface ControlsProps {
@@ -9,6 +9,11 @@ interface ControlsProps {
   colorTheme: ColorTheme;
   onColorThemeChange: (c: ColorTheme) => void;
   
+  // Coloring Rules
+  coloringRule: ColoringMode;
+  onColoringModeChange: (m: ColoringMode) => void;
+  onRerollColoring: () => void;
+
   // Custom Theme Props
   customThemeConfig: CustomThemeConfig;
   onCustomThemeConfigChange: (c: CustomThemeConfig) => void;
@@ -107,7 +112,10 @@ export const Controls: React.FC<ControlsProps> = ({
   strokeColor,
   onStrokeColorChange,
   strokeWidth,
-  onStrokeWidthChange
+  onStrokeWidthChange,
+  coloringRule,
+  onColoringModeChange,
+  onRerollColoring
 }) => {
   const [isThemeOpen, setIsThemeOpen] = useState(false);
 
@@ -378,6 +386,33 @@ export const Controls: React.FC<ControlsProps> = ({
                 ))}
              </div>
            )}
+        </div>
+
+        {/* Coloring Rules */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Coloring Rule</label>
+          <div className="flex gap-2">
+            <select
+              className="flex-1 p-2 rounded-lg bg-gray-50 border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all text-gray-900"
+              value={coloringRule}
+              onChange={(e) => onColoringModeChange(e.target.value as ColoringMode)}
+            >
+              <option value="default">Default (By Label)</option>
+              <option value="random">Randomize</option>
+              <option value="four-color">4/5 Color Map</option>
+              <option value="orientation">Orientation</option>
+              <option value="orientation-gradient">Orientation Gradient</option>
+            </select>
+            {(coloringRule === 'random' || coloringRule === 'four-color') && (
+               <button
+                 onClick={onRerollColoring}
+                 className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-medium border border-gray-200"
+                 title="Reroll"
+               >
+                 🎲
+               </button>
+            )}
+          </div>
         </div>
 
         {/* Custom Theme Editor */}

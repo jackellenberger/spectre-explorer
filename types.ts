@@ -69,3 +69,5 @@ export type ColorTheme =
   | 'Cyberpunk'
   | 'Magma'
   | 'Custom';
+
+export type ColoringMode = 'default' | 'random' | 'four-color' | 'orientation' | 'orientation-gradient';

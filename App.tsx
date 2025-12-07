@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Controls } from './components/Controls';
-import { TileSystem, TileType, ColorTheme, Matrix, ColorScheme, Renderable, CustomThemeConfig, ThemeSlot } from './types';
+import { TileSystem, TileType, ColorTheme, Matrix, ColorScheme, Renderable, CustomThemeConfig, ThemeSlot, ColoringMode } from './types';
+import { computeColors } from './utils/coloring';
 import { 
   buildSpectreBase, 
   buildHatTurtleBase, 
@@ -64,6 +65,10 @@ export default function App() {
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [strokeColor, setStrokeColor] = useState('#000000');
   const [strokeWidth, setStrokeWidth] = useState(0.1);
+
+  // Coloring State
+  const [coloringMode, setColoringMode] = useState<ColoringMode>('default');
+  const [coloringSeed, setColoringSeed] = useState<number>(Date.now());
 
   // Animation State
   const [animateGrowth, setAnimateGrowth] = useState(false);
@@ -280,6 +285,23 @@ export default function App() {
     }
   }, [colorTheme]);
 
+  const dynamicColors = useMemo(() => {
+    if (coloringMode === 'default') return null;
+
+    // Determine palette
+    let palette: string[] = [];
+    if (colorTheme === 'Custom') {
+        palette = Object.values(customThemeConfig.slots).map(s => s.color1);
+    } else if (colorTheme === 'Magma') {
+        palette = Object.values(MAGMA_CONFIG.slots).map(s => s.color1);
+    } else {
+        // Use unique colors from the current theme
+        palette = Array.from(new Set(Object.values(colors)));
+    }
+
+    return computeColors(bakedTiles, coloringMode, palette, coloringSeed);
+  }, [bakedTiles, coloringMode, coloringSeed, colorTheme, colors, customThemeConfig]);
+
   // --- Rendering Loop ---
 
   useEffect(() => {
@@ -397,7 +419,9 @@ export default function App() {
              ctx.strokeStyle = strokeColor;
              
              // Color Logic
-             if (activeCustomConfig && slot) {
+             if (dynamicColors && dynamicColors.has(inst.path)) {
+                 ctx.fillStyle = dynamicColors.get(inst.path)!;
+             } else if (activeCustomConfig && slot) {
                  if (slot.isGradient) {
                      const grad = ctx.createLinearGradient(0, 0, 1.5, 1.5);
                      grad.addColorStop(0, slot.color1);
@@ -698,6 +722,9 @@ export default function App() {
         onStrokeColorChange={setStrokeColor}
         strokeWidth={strokeWidth}
         onStrokeWidthChange={setStrokeWidth}
+        coloringRule={coloringMode}
+        onColoringModeChange={setColoringMode}
+        onRerollColoring={() => setColoringSeed(Date.now())}
       />
     </div>
   );
